@@ -31,6 +31,7 @@ type IntelinvestRecord struct {
 	Currency      string
 	FeeCurrency   string
 	Note          string
+	LinkID        string
 	TradeSystemID string
 }
 
@@ -42,4 +43,3 @@ type AssetDefinition struct {
 	Price    string
 	Currency string
 }
-

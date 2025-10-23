@@ -103,6 +103,9 @@ func (c *Converter) convertInterestOnCash(record records.Trading212Record) []rec
 	amount := record.Total
 	currency := record.CurrencyTotal
 
+	// Generate unique LinkID for related operations
+	linkID := c.generateLinkID(record.ID)
+
 	return []records.IntelinvestRecord{
 		{
 			Type:          "INCOME",
@@ -116,6 +119,22 @@ func (c *Converter) convertInterestOnCash(record records.Trading212Record) []rec
 			Currency:      currency,
 			FeeCurrency:   "",
 			Note:          "",
+			LinkID:        linkID,
+			TradeSystemID: record.ID,
+		},
+		{
+			Type:          "MONEYDEPOSIT",
+			Date:          date,
+			TickerISIN:    "",
+			Quantity:      "",
+			Price:         amount,
+			Fee:           "",
+			NKD:           "",
+			Nominal:       "",
+			Currency:      currency,
+			FeeCurrency:   "",
+			Note:          fmt.Sprintf("Income deposit from %s", date),
+			LinkID:        linkID,
 			TradeSystemID: record.ID,
 		},
 	}
@@ -127,9 +146,17 @@ func (c *Converter) convertMarketBuy(record records.Trading212Record) []records.
 	isin := record.ISIN
 	quantity := record.NumberOfShares
 	price := c.normalizePrice(record.PricePerShare, record.CurrencyPriceShare)
+	total := record.Total
 	currency := record.CurrencyTotal
 
 	tickerISIN := c.formatTickerISIN(ticker, isin)
+	name := record.Name
+	if name == "" {
+		name = ticker
+	}
+
+	// Generate unique LinkID for related operations
+	linkID := c.generateLinkID(record.ID)
 
 	return []records.IntelinvestRecord{
 		{
@@ -144,6 +171,22 @@ func (c *Converter) convertMarketBuy(record records.Trading212Record) []records.
 			Currency:      currency,
 			FeeCurrency:   currency,
 			Note:          "",
+			LinkID:        linkID,
+			TradeSystemID: record.ID,
+		},
+		{
+			Type:          "MONEYWITHDRAW",
+			Date:          date,
+			TickerISIN:    "",
+			Quantity:      "",
+			Price:         total,
+			Fee:           "",
+			NKD:           "",
+			Nominal:       "",
+			Currency:      currency,
+			FeeCurrency:   "",
+			Note:          fmt.Sprintf("Payment for %s", name),
+			LinkID:        linkID,
 			TradeSystemID: record.ID,
 		},
 	}
@@ -155,9 +198,17 @@ func (c *Converter) convertMarketSell(record records.Trading212Record) []records
 	isin := record.ISIN
 	quantity := record.NumberOfShares
 	price := c.normalizePrice(record.PricePerShare, record.CurrencyPriceShare)
+	total := record.Total
 	currency := record.CurrencyTotal
 
 	tickerISIN := c.formatTickerISIN(ticker, isin)
+	name := record.Name
+	if name == "" {
+		name = ticker
+	}
+
+	// Generate unique LinkID for related operations
+	linkID := c.generateLinkID(record.ID)
 
 	return []records.IntelinvestRecord{
 		{
@@ -172,6 +223,22 @@ func (c *Converter) convertMarketSell(record records.Trading212Record) []records
 			Currency:      currency,
 			FeeCurrency:   currency,
 			Note:          "",
+			LinkID:        linkID,
+			TradeSystemID: record.ID,
+		},
+		{
+			Type:          "MONEYDEPOSIT",
+			Date:          date,
+			TickerISIN:    "",
+			Quantity:      "",
+			Price:         total,
+			Fee:           "",
+			NKD:           "",
+			Nominal:       "",
+			Currency:      currency,
+			FeeCurrency:   "",
+			Note:          fmt.Sprintf("Proceeds from %s", name),
+			LinkID:        linkID,
 			TradeSystemID: record.ID,
 		},
 	}
@@ -236,3 +303,26 @@ func (c *Converter) formatNumber(num float64) string {
 	return str
 }
 
+// generateLinkID generates a unique numeric LinkID from TradeSystemID
+// Extracts numeric part or generates hash to create numeric ID
+func (c *Converter) generateLinkID(tradeSystemID string) string {
+	// Extract only digits from TradeSystemID
+	var digits strings.Builder
+	for _, ch := range tradeSystemID {
+		if ch >= '0' && ch <= '9' {
+			digits.WriteByte(byte(ch))
+		}
+	}
+
+	numericID := digits.String()
+	// Take last 8 digits to create shorter ID
+	if len(numericID) > 8 {
+		return numericID[len(numericID)-8:]
+	}
+	if len(numericID) > 0 {
+		return numericID
+	}
+
+	// Fallback: if no digits, return "1"
+	return "1"
+}

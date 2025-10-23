@@ -85,7 +85,7 @@ func (e *Exporter) Write(wr io.Writer, assets []records.AssetDefinition, recs []
 			record.Currency,
 			record.FeeCurrency,
 			record.Note,
-			"", // LinkID is always empty
+			record.LinkID,
 			record.TradeSystemID,
 		}
 		if err := writer.Write(row); err != nil {
@@ -95,4 +95,3 @@ func (e *Exporter) Write(wr io.Writer, assets []records.AssetDefinition, recs []
 
 	return nil
 }
-
