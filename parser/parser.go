@@ -42,11 +42,28 @@ func (p *Trading212Parser) Parse(r io.Reader) ([]records.Trading212Record, error
 		return nil, fmt.Errorf("file is empty or contains only header")
 	}
 
+	// Trading 212 export format varies:
+	// - Old (from_...): 14+ columns, has "Currency (Result)", Total=12, CurrencyTotal=13
+	// - New (t212.csv): 13 columns, no "Currency (Result)", Total=11, CurrencyTotal=12
+	const minCols = 13
+
 	var recs []records.Trading212Record
 	for i := 1; i < len(rows); i++ {
 		row := rows[i]
-		if len(row) < 14 {
+		if len(row) < minCols {
 			continue
+		}
+
+		totalIdx := 11
+		currencyTotalIdx := 12
+		if len(row) >= 14 {
+			totalIdx = 12
+			currencyTotalIdx = 13
+		}
+
+		var currencyResult string
+		if len(row) >= 14 {
+			currencyResult = row[11]
 		}
 
 		record := records.Trading212Record{
@@ -61,13 +78,12 @@ func (p *Trading212Parser) Parse(r io.Reader) ([]records.Trading212Record, error
 			PricePerShare:      row[8],
 			CurrencyPriceShare: row[9],
 			ExchangeRate:       row[10],
-			CurrencyResult:     row[11],
-			Total:              row[12],
-			CurrencyTotal:      row[13],
+			CurrencyResult:     currencyResult,
+			Total:              row[totalIdx],
+			CurrencyTotal:      row[currencyTotalIdx],
 		}
 		recs = append(recs, record)
 	}
 
 	return recs, nil
 }
-
